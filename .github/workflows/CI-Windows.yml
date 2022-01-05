@@ -1,0 +1,98 @@
+name: CI-Windows
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  ci:
+    if: github.event.pull_request.draft == false
+
+    strategy:
+      matrix:
+        os: [windows-latest]
+        vtk_version: [v9.1.0]
+
+    runs-on: ${{matrix.os}}
+
+
+    steps:
+    - name: Dependencies Dir
+      working-directory: ${{github.workspace}}
+      run: mkdir dependencies
+
+    - name: Fetch VTK
+      run: |
+        Invoke-WebRequest `
+        -OutFile vtk_install.zip `
+        -Uri https://github.com/BeyondXinXin/GitHubActionsCache/releases/download/vtk_cache/vtk-win-9.1-vs2019-qt5.15.2.zip    
+        C:\Windows\System32\tar.exe -z -xf ./vtk_install.zip -P -C D:/a/GitHubActionsCacheTest/GitHubActionsCacheTest/dependencies
+    - name: Cache Qt
+      id: cache-qt
+      uses: actions/cache@v1  # not v2!
+      with:
+        path: ../Qt
+        key: ${{ runner.os }}-QtCache
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2
+      with:
+        version: 5.15.2
+        target: desktop
+        arch: win64_msvc2019_64
+        cached: ${{ steps.cache-qt.outputs.cache-hit }}
+        
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        path: 'source'
+        fetch-depth: 0
+        lfs: 'false'
+        
+    - name: Setup Directories
+      working-directory: ${{github.workspace}}
+      run: |
+         mkdir build
+        
+    - name: Configure
+      working-directory: ${{github.workspace}}/build
+      run: >
+        cmake ../source
+        -DCMAKE_BUILD_TYPE=Release
+        -DVTK_DIR:PATH=../dependencies/vtk_install/lib/cmake/vtk-9.1
+        ${{ matrix.os == 'windows-latest' && '-Ax64 -DCMAKE_POLICY_DEFAULT_CMP0091=NEW -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded' || null }}
+    
+    - name: Build
+      working-directory: ${{github.workspace}}/build
+      run: cmake --build . --parallel 2 --config Release
+
+    - name: Package Project
+      shell: cmd
+      run: |
+        windeployqt.exe D:/a/GitHubActionsCacheTest/GitHubActionsCacheTest/source/bin/Release/SideBySideRenderWindowsQt.exe --release
+        windeployqt.exe D:/a/GitHubActionsCacheTest/GitHubActionsCacheTest/source/bin/Release/BorderWidgetQt.exe --release
+        windeployqt.exe D:/a/GitHubActionsCacheTest/GitHubActionsCacheTest/source/bin/Release/QtBarChart.exe --release
+        xcopy D:\a\GitHubActionsCacheTest\GitHubActionsCacheTest\dependencies\vtk_install\bin\*.* D:\a\GitHubActionsCacheTest\GitHubActionsCacheTest\source\bin\Release\ /s/y
+        7z a D:/a/GitHubActionsCacheTest/app.zip D:/a/GitHubActionsCacheTest/GitHubActionsCacheTest/source/bin
+      
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+
+    - name: Upload Release Asset
+      id: upload-release-asset 
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: D:/a/GitHubActionsCacheTest/app.zip
+        asset_name: GitHubActionsCacheTest.zip
+        asset_content_type: application/zip

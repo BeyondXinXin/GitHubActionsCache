@@ -26,7 +26,7 @@ jobs:
         Invoke-WebRequest `
         -OutFile vtk_install.zip `
         -Uri https://github.com/BeyondXinXin/GitHubActionsCache/releases/download/vtk_cache/vtk-win-9.1-vs2019-qt5.15.2.zip    
-        C:\Windows\System32\tar.exe -z -xf ./vtk_install.zip -P -C D:/a/GitHubActionsCacheTest/GitHubActionsCacheTest/dependencies
+        C:\Windows\System32\tar.exe -z -xf ./vtk_install.zip -P -C D:/a/GitHubActionsCache/GitHubActionsCache/dependencies
     - name: Cache Qt
       id: cache-qt
       uses: actions/cache@v1  # not v2!
@@ -69,11 +69,11 @@ jobs:
     - name: Package Project
       shell: cmd
       run: |
-        windeployqt.exe D:/a/GitHubActionsCacheTest/GitHubActionsCacheTest/source/bin/Release/SideBySideRenderWindowsQt.exe --release
-        windeployqt.exe D:/a/GitHubActionsCacheTest/GitHubActionsCacheTest/source/bin/Release/BorderWidgetQt.exe --release
-        windeployqt.exe D:/a/GitHubActionsCacheTest/GitHubActionsCacheTest/source/bin/Release/QtBarChart.exe --release
-        xcopy D:\a\GitHubActionsCacheTest\GitHubActionsCacheTest\dependencies\vtk_install\bin\*.* D:\a\GitHubActionsCacheTest\GitHubActionsCacheTest\source\bin\Release\ /s/y
-        7z a D:/a/GitHubActionsCacheTest/app.zip D:/a/GitHubActionsCacheTest/GitHubActionsCacheTest/source/bin
+        windeployqt.exe D:/a/GitHubActionsCache/GitHubActionsCache/source/bin/Release/SideBySideRenderWindowsQt.exe --release
+        windeployqt.exe D:/a/GitHubActionsCache/GitHubActionsCache/source/bin/Release/BorderWidgetQt.exe --release
+        windeployqt.exe D:/a/GitHubActionsCache/GitHubActionsCache/source/bin/Release/QtBarChart.exe --release
+        xcopy D:\a\GitHubActionsCache\GitHubActionsCache\dependencies\vtk_install\bin\*.* D:\a\GitHubActionsCache\GitHubActionsCache\source\bin\Release\ /s/y
+        7z a D:/a/GitHubActionsCache/app.zip D:/a/GitHubActionsCache/GitHubActionsCache/source/bin
       
     - name: Create Release
       id: create_release
@@ -93,6 +93,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-        asset_path: D:/a/GitHubActionsCacheTest/app.zip
-        asset_name: GitHubActionsCacheTest.zip
+        asset_path: D:/a/GitHubActionsCache/app.zip
+        asset_name: GitHubActionsCache.zip
         asset_content_type: application/zip
